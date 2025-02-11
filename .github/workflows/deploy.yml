@@ -46,10 +46,11 @@ jobs:
       run: |
         ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
           sudo yum update -y
-          sudo amazon-linux-extras install docker -y
+          sudo yum install docker -y
           sudo service docker start
+          sudo systemctl enable docker
           sudo usermod -a -G docker ec2-user
-          docker run -d ploc24/bellimage  # Replace with your Docker image
+          docker run -d ploc24/bellimage
         EOF
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
