@@ -22,14 +22,7 @@ jobs:
 
     - name: Create EC2 Instance
       run: |
-        instance_id=$(aws ec2 run-instances \
-          --image-id ami-0fcc1d7ed380d3549 \  
-          --instance-type t2.micro \  
-          --security-group-ids sg-042896fe2dea4c357 \  
-          --key-name g10_sshkey \ 
-          --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=g10_instance_cli}]' \
-          --query 'Instances[0].InstanceId' \
-          --output text)
+        instance_id=$(aws ec2 run-instances --image-id ami-0fcc1d7ed380d3549 --instance-type t2.micro --security-group-ids sg-042896fe2dea4c357 --key-name g10_sshkey --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=g10_instance_cli}]' --query 'Instances[0].InstanceId' --output text)
         echo "Instance ID: $instance_id"
         echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
 
@@ -40,10 +33,7 @@ jobs:
     - name: Get Instance Public DNS
       id: get_dns
       run: |
-        public_dns=$(aws ec2 describe-instances \
-          --instance-ids ${{ env.INSTANCE_ID }} \
-          --query 'Reservations[0].Instances[0].PublicDnsName' \
-          --output text)
+        public_dns=$(aws ec2 describe-instances --instance-ids ${{ env.INSTANCE_ID }} --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
         echo "Public DNS: $public_dns"
         echo "PUBLIC_DNS=$public_dns" >> $GITHUB_ENV
 
