@@ -42,15 +42,31 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > my-key-pair.pem
         chmod 600 my-key-pair.pem
 
-    - name: Run Docker Image on EC2 Instance
+    # - name: Run Docker Image on EC2 Instance
+    #   run: |
+    #     ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
+    #       sudo yum update -y
+    #       sudo yum install docker -y
+    #       sudo service docker start
+    #       sudo systemctl enable docker
+    #       sudo usermod -a -G docker ec2-user
+    #       docker run -d ploc24/bellimage
+    #     EOF
+    #   env:
+    #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    - name: Install Docker and Add User to Docker Group
       run: |
         ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
           sudo yum update -y
           sudo yum install docker -y
           sudo service docker start
-          sudo systemctl enable docker
           sudo usermod -a -G docker ec2-user
-          docker run -d ploc24/bellimage
+          # Log out and log back in to apply group membership
+          exit
         EOF
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Run Docker Image on EC2 Instance
+      run: |
+        ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
+          docker run -d ploc24/bellimage 
+        EOF
