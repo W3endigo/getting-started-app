@@ -1,21 +1,15 @@
 services:
-  db:
-    image: ploc24/db_projet
+  bdd_projet:
+    image: ploc24/bdd_projet
     expose:
       - "3306"
     networks:
       - backend
 
-  api:
+  api_projet:
     image: ploc24/api_projet
     depends_on:
-      - db
-    environment:
-      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
-      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/bdd_projet_dp
-      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
-      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - bdd_projet
     ports:
       - "8082:8082"
     networks:

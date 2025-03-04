@@ -64,3 +64,23 @@ jobs:
               export SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
               docker-compose -f ~/compose.yaml up -d
             EOF
+        - name: Test API from within the server
+          run: |
+            ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
+              response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/user)
+              if [ "$response" -ne 403 ]; then
+                echo "Expected 403, but got $response"
+                exit 1
+              fi
+              echo "Internal test passed with response code $response"
+              exit
+            EOF
+
+        - name: Test API externally
+          run: |
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.PUBLIC_DNS }}:8082/user)
+            if [ "$response" -ne 403 ]; then
+              echo "Expected 403, but got $response"
+              exit 1
+            fi
+            echo "External test passed with response code $response"
