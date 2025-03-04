@@ -58,10 +58,6 @@ jobs:
         - name: Run Docker Compose on EC2 Instance
           run: |
             ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
-              export SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}
-              export SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}
-              export SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}
-              export SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
               docker-compose -f ~/compose.yaml up -d
             EOF
         - name: Test API from within the server
