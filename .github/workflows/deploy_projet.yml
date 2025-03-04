@@ -60,6 +60,8 @@ jobs:
             ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
               docker-compose -f ~/compose.yaml up -d
             EOF
+        - name: Wait for containers to start
+          run: sleep 30
         - name: Test API from within the server
           run: |
             ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
