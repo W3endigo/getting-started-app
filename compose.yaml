@@ -1,13 +1,13 @@
 services:
   db:
-    image: bdd_projet
+    image: ploc24/db_projet
     expose:
       - "3306"
     networks:
       - backend
 
   api:
-    image: projet_dp_api
+    image: ploc24/api_projet
     depends_on:
       - db
     environment:
