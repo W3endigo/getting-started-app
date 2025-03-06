@@ -1,22 +1,29 @@
 services:
-  bdd_projet:
-    image: ploc24/bdd_projet
+  bdd-projet:
+    image: ploc24/bdd-projet:1.0.0
     expose:
       - "3306"
     networks:
-      - backend
+      - app
 
-  api_projet:
-    image: ploc24/api_projet
+  api-projet:
+    image: ploc24/api-projet:1.0.0
     depends_on:
-      - bdd_projet
+      - bdd-projet
     ports:
       - "8082:8082"
     networks:
-      - backend
+      - app
+
+  front-projet:
+    image: ploc24/front-projet:1.0.0
+    depends_on:
+      - api-projet
+    ports:
+      - "8080:8080"
+    networks:
+      - app
 
 networks:
-  backend:
+  app:
     driver: bridge
-    driver_opts:
-      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
