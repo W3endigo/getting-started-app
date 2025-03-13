@@ -22,7 +22,7 @@ jobs:
         run: |
           db_instance_id=$(aws rds create-db-instance --db-instance-identifier g10-bdd --db-instance-class db.t4g.micro --engine mysql --master-username ${{ secrets.AWS_RDS_USR }} --master-user-password ${{ secrets.AWS_RDS_PWD }} --allocated-storage 20 --query 'DBInstance.DBInstanceIdentifier' --output text)
           echo "DB Instance ID: $db_instance_id"
-          echo "DB_INSTANCE_ID=$db_instance_id" >> $GITHUB_STATE
+          echo "DB_INSTANCE_ID=$db_instance_id" >> $GITHUB_ENV
 
       - name: Wait for RDS Instance to be Available
         run: |
@@ -33,13 +33,13 @@ jobs:
         run: |
           rds_endpoint=$(aws rds describe-db-instances --db-instance-identifier ${{ env.DB_INSTANCE_ID }} --query 'DBInstances[0].Endpoint.Address' --output text)
           echo "RDS Endpoint: $rds_endpoint"
-          echo "RDS_ENDPOINT=$rds_endpoint" >> $GITHUB_STATE
+          echo "RDS_ENDPOINT=$rds_endpoint" >> $GITHUB_ENV
 
       - name: Create EC2 Instance
         run: |
           instance_id=$(aws ec2 run-instances --image-id ami-0fcc1d7ed380d3549 --instance-type t2.micro --security-group-ids sg-042896fe2dea4c357 --key-name g10_sshkey --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=g10_instance_github}]' --query 'Instances[0].InstanceId' --output text)
           echo "Instance ID: $instance_id"
-          echo "INSTANCE_ID=$instance_id" >> $GITHUB_STATE
+          echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
 
       - name: Wait for Instance to be Running
         run: |
@@ -50,7 +50,7 @@ jobs:
         run: |
           public_dns=$(aws ec2 describe-instances --instance-ids ${{ env.INSTANCE_ID }} --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
           echo "Public DNS: $public_dns"
-          echo "PUBLIC_DNS=$public_dns" >> $GITHUB_STATE
+          echo "PUBLIC_DNS=$public_dns" >> $GITHUB_ENV
 
       - name: Set up SSH key
         run: |
