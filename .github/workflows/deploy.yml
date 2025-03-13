@@ -8,63 +8,72 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up AWS CLI
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-        aws-region: eu-west-3
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: eu-west-3
 
-    - name: Create EC2 Instance
-      run: |
-        instance_id=$(aws ec2 run-instances --image-id ami-0fcc1d7ed380d3549 --instance-type t2.micro --security-group-ids sg-042896fe2dea4c357 --key-name g10_sshkey --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=g10_instance_github}]' --query 'Instances[0].InstanceId' --output text)
-        echo "Instance ID: $instance_id"
-        echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
+      - name: Create RDS Instance
+        run: |
+          db_instance_id=$(aws rds create-db-instance --db-instance-identifier g10-bdd --db-instance-class db.t2.micro --engine mysql --master-username ${{ secrets.AWS_RDS_USR }} --master-user-password ${{ secrets.AWS_RDS_PWD }} --allocated-storage 20 --query 'DBInstance.DBInstanceIdentifier' --output text)
+          echo "DB Instance ID: $db_instance_id"
+          echo "DB_INSTANCE_ID=$db_instance_id" >> $GITHUB_ENV
 
-    - name: Wait for Instance to be Running
-      run: |
-        aws ec2 wait instance-running --instance-ids ${{ env.INSTANCE_ID }}
+      - name: Wait for RDS Instance to be Available
+        run: |
+          aws rds wait db-instance-available --db-instance-identifier ${{ env.DB_INSTANCE_ID }}
 
-    - name: Get Instance Public DNS
-      id: get_dns
-      run: |
-        public_dns=$(aws ec2 describe-instances --instance-ids ${{ env.INSTANCE_ID }} --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
-        echo "Public DNS: $public_dns"
-        echo "PUBLIC_DNS=$public_dns" >> $GITHUB_ENV
+      - name: Get RDS Endpoint
+        id: get_rds_endpoint
+        run: |
+          rds_endpoint=$(aws rds describe-db-instances --db-instance-identifier ${{ env.DB_INSTANCE_ID }} --query 'DBInstances[0].Endpoint.Address' --output text)
+          echo "RDS Endpoint: $rds_endpoint"
+          echo "RDS_ENDPOINT=$rds_endpoint" >> $GITHUB_ENV
 
-    - name: Set up SSH key
-      run: |
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > my-key-pair.pem
-        chmod 600 my-key-pair.pem
+      - name: Create EC2 Instance
+        run: |
+          instance_id=$(aws ec2 run-instances --image-id ami-0fcc1d7ed380d3549 --instance-type t2.micro --security-group-ids sg-042896fe2dea4c357 --key-name g10_sshkey --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=g10_instance_github}]' --query 'Instances[0].InstanceId' --output text)
+          echo "Instance ID: $instance_id"
+          echo "INSTANCE_ID=$instance_id" >> $GITHUB_ENV
 
-    # - name: Run Docker Image on EC2 Instance
-    #   run: |
-    #     ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
-    #       sudo yum update -y
-    #       sudo yum install docker -y
-    #       sudo service docker start
-    #       sudo systemctl enable docker
-    #       sudo usermod -a -G docker ec2-user
-    #       docker run -d ploc24/bellimage
-    #     EOF
-    #   env:
-    #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-    - name: Install Docker and Add User to Docker Group
-      run: |
-        ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
-          sudo yum update -y
-          sudo yum install docker -y
-          sudo service docker start
-          sudo usermod -a -G docker ec2-user
-          # Log out and log back in to apply group membership
-          exit
-        EOF
+      - name: Wait for Instance to be Running
+        run: |
+          aws ec2 wait instance-running --instance-ids ${{ env.INSTANCE_ID }}
 
-    - name: Run Docker Image on EC2 Instance
-      run: |
-        ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
-          docker run -d ploc24/bellimage 
-        EOF
+      - name: Get Instance Public DNS
+        id: get_dns
+        run: |
+          public_dns=$(aws ec2 describe-instances --instance-ids ${{ env.INSTANCE_ID }} --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
+          echo "Public DNS: $public_dns"
+          echo "PUBLIC_DNS=$public_dns" >> $GITHUB_ENV
+
+      - name: Set up SSH key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > my-key-pair.pem
+          chmod 600 my-key-pair.pem
+
+      - name: Install Docker and Add User to Docker Group
+        run: |
+          ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
+            sudo yum update -y
+            sudo yum install docker -y
+            sudo service docker start
+            sudo usermod -a -G docker ec2-user
+            # Log out and log back in to apply group membership
+            exit
+          EOF
+
+      - name: Run Docker Image on EC2 Instance
+        run: |
+          ssh -o StrictHostKeyChecking=no -i my-key-pair.pem ec2-user@${{ env.PUBLIC_DNS }} << 'EOF'
+            docker run -d \
+              -e DB_HOST=${{ env.RDS_ENDPOINT }} \
+              -e DB_USER=${{ secrets.AWS_RDS_USR }} \
+              -e DB_PASSWORD=${{ secrets.AWS_RDS_PWD }} \
+              ploc24/bellimage
+          EOF
