@@ -20,7 +20,7 @@ jobs:
 
       - name: Create RDS Instance
         run: |
-          db_instance_id=$(aws rds create-db-instance --db-instance-identifier g10-bdd --db-instance-class db.t4g.micro --engine mysql --master-username ${{ secrets.AWS_RDS_USR }} --master-user-password ${{ secrets.AWS_RDS_PWD }} --allocated-storage 20 --query 'DBInstance.DBInstanceIdentifier' --output text)
+          db_instance_id=$(aws rds create-db-instance --db-instance-identifier g10_bdd --db-instance-class db.t4g.micro --engine mysql --master-username ${{ secrets.AWS_RDS_USR }} --master-user-password ${{ secrets.AWS_RDS_PWD }} --allocated-storage 20 --query 'DBInstance.DBInstanceIdentifier' --output text)
           echo "DB Instance ID: $db_instance_id"
           echo "DB_INSTANCE_ID=$db_instance_id" >> $GITHUB_STATE
 
